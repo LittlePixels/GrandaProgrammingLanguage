@@ -1,0 +1,87 @@
+# Object-oriented programming demo in Granda
+
+class Shape {
+    color: str
+
+    fn describe(self) -> str {
+        return "A " + self.color + " shape"
+    }
+
+    fn area(self) -> float {
+        return 0.0
+    }
+}
+
+class Rectangle extends Shape {
+    width: float
+    height: float
+
+    fn new(color: str, width: float, height: float) -> Rectangle {
+        return Rectangle { color: color, width: width, height: height }
+    }
+
+    fn area(self) -> float {
+        return self.width * self.height
+    }
+
+    fn perimeter(self) -> float {
+        return 2.0 * (self.width + self.height)
+    }
+
+    fn describe(self) -> str {
+        return "A " + self.color + " rectangle (" + str(self.width) +
+               " x " + str(self.height) + ")"
+    }
+}
+
+class Circle extends Shape {
+    radius: float
+
+    fn new(color: str, radius: float) -> Circle {
+        return Circle { color: color, radius: radius }
+    }
+
+    fn area(self) -> float {
+        # PI approximation
+        return 3.14159 * self.radius * self.radius
+    }
+
+    fn describe(self) -> str {
+        return "A " + self.color + " circle (r=" + str(self.radius) + ")"
+    }
+}
+
+fn print_shape_info(r: Rectangle) {
+    println(r.describe())
+    println("  area      = " + str(r.area()))
+    println("  perimeter = " + str(r.perimeter()))
+}
+
+fn main() {
+    let rect = Rectangle::new("blue", 5.0, 3.0)
+    let circle = Circle::new("red", 4.0)
+
+    println(rect.describe())
+    println("Area: " + str(rect.area()))
+    println("Perimeter: " + str(rect.perimeter()))
+
+    println(circle.describe())
+    println("Area: " + str(circle.area()))
+
+    println("")
+    println("--- Shapes collection ---")
+
+    # Array of rectangles
+    let rects: [Rectangle] = [
+        Rectangle::new("green",  2.0, 2.0),
+        Rectangle::new("yellow", 6.0, 1.0),
+        Rectangle::new("purple", 3.0, 4.0)
+    ]
+
+    let total_area = 0.0
+    for r in rects {
+        total_area += r.area()
+        print_shape_info(r)
+    }
+    println("Total area: " + str(total_area))
+}

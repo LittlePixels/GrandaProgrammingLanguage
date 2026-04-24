@@ -1,0 +1,30 @@
+# Hello, World! in Granda
+
+fn main() {
+    let greeting: str = "Hello, World!"
+    println(greeting)
+
+    # String concatenation
+    let name = "Granda"
+    println("Welcome to " + name + "!")
+
+    # Basic arithmetic
+    let x = 10
+    let y = 3
+    println(str(x) + " + " + str(y) + " = " + str(x + y))
+    println(str(x) + " * " + str(y) + " = " + str(x * y))
+
+    # Loops
+    let sum = 0
+    for i in 0..5 {
+        sum += i
+    }
+    println("Sum 0..4 = " + str(sum))
+
+    # Conditionals
+    if sum > 5 {
+        println("Sum is greater than 5")
+    } else {
+        println("Sum is 5 or less")
+    }
+}
