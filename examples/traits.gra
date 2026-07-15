@@ -1,0 +1,83 @@
+# Interfaces / Traits demo in Granda
+
+trait Drawable {
+    fn draw(self) -> void
+    fn area(self) -> float
+}
+
+trait Describable {
+    fn describe(self) -> str
+}
+
+class Circle implements Drawable, Describable {
+    radius: float
+
+    fn new(r: float) -> Circle {
+        return Circle { radius: r }
+    }
+
+    fn draw(self) -> void {
+        println("Drawing a circle with radius " + str(self.radius))
+    }
+
+    fn area(self) -> float {
+        return 3.14159 * self.radius * self.radius
+    }
+
+    fn describe(self) -> str {
+        return "Circle(r=" + str(self.radius) + ")"
+    }
+}
+
+class Square implements Drawable, Describable {
+    side: float
+
+    fn new(s: float) -> Square {
+        return Square { side: s }
+    }
+
+    fn draw(self) -> void {
+        println("Drawing a square with side " + str(self.side))
+    }
+
+    fn area(self) -> float {
+        return self.side * self.side
+    }
+
+    fn describe(self) -> str {
+        return "Square(s=" + str(self.side) + ")"
+    }
+}
+
+fn render(d: Drawable) -> void {
+    d.draw()
+    println("  area = " + str(d.area()))
+}
+
+fn print_desc(d: Describable) -> void {
+    println(d.describe())
+}
+
+fn main() {
+    let c = Circle::new(5.0)
+    let s = Square::new(4.0)
+
+    println("--- Direct calls ---")
+    c.draw()
+    s.draw()
+    println("")
+
+    println("--- Polymorphic via Drawable ---")
+    render(c)
+    render(s)
+    println("")
+
+    println("--- Polymorphic via Describable ---")
+    print_desc(c)
+    print_desc(s)
+    println("")
+
+    println("--- Direct area ---")
+    println("circle area = " + str(c.area()))
+    println("square area = " + str(s.area()))
+}

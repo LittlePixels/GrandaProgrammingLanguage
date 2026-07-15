@@ -1,0 +1,77 @@
+# Standard Library test
+
+fn main() {
+    # ---- Math ----
+    println("--- Math ---")
+    println("sin(1.0) = " + str(sin(1.0)))
+    println("cos(0.0) = " + str(cos(0.0)))
+    println("sqrt(9.0) = " + str(sqrt(9.0)))
+    println("pow(2.0, 10.0) = " + str(pow(2.0, 10.0)))
+    println("abs(-42) = " + str(abs(-42)))
+    println("abs(-3.14) = " + str(abs(-3.14)))
+    println("floor(3.7) = " + str(floor(3.7)))
+    println("ceil(3.2) = " + str(ceil(3.2)))
+    println("round(3.5) = " + str(round(3.5)))
+    println("min(10, 3) = " + str(min(10, 3)))
+    println("max(10, 3) = " + str(max(10, 3)))
+    println("min(1.5, 2.3) = " + str(min(1.5, 2.3)))
+    println("max(1.5, 2.3) = " + str(max(1.5, 2.3)))
+    println("log(2.718) = " + str(log(2.718)))
+    println("log2(8.0) = " + str(log2(8.0)))
+    println("log10(1000.0) = " + str(log10(1000.0)))
+    println("")
+
+    # ---- String ----
+    println("--- String ---")
+    let s = "Hello, World!"
+    println("substr(7, 5) = " + substr(s, 7, 5))
+    println("index_of(World) = " + str(index_of(s, "World")))
+    println("contains(World) = " + str(contains(s, "World")))
+    println("contains(Foo) = " + str(contains(s, "Foo")))
+    println("to_upper = " + to_upper(s))
+    println("to_lower = " + to_lower(s))
+    println("trim = '" + trim("  hi  ") + "'")
+    println("starts_with(Hello) = " + str(starts_with(s, "Hello")))
+    println("ends_with(World!) = " + str(ends_with(s, "World!")))
+    println("char_at(0) = " + char_at(s, 0))
+    println("replace = " + replace(s, "World", "Granda"))
+    let parts = split("a,b,c", ",")
+    println("split len = " + str(len(parts)))
+    println("str_to_int = " + str(str_to_int("42")))
+    println("str_to_float = " + str(str_to_float("3.14")))
+    println("")
+
+    # ---- Array ----
+    println("--- Array ---")
+    let arr = [5, 3, 1, 4, 2]
+    sort(arr)
+    println("sorted: " + str(arr[0]) + " " + str(arr[1]) + " " + str(arr[2]) + " " + str(arr[3]) + " " + str(arr[4]))
+    reverse(arr)
+    println("reversed: " + str(arr[0]) + " " + str(arr[1]) + " " + str(arr[2]) + " " + str(arr[3]) + " " + str(arr[4]))
+    push(arr, 99)
+    println("after push 99: len = " + str(len(arr)))
+    let popped = pop(arr)
+    println("after pop: len = " + str(len(arr)) + ", popped = " + str(popped))
+    println("")
+
+    # ---- IO ----
+    println("--- IO ---")
+    println("file_exists(granda_rt.h) = " + str(file_exists("granda_rt.h")))
+    println("file_exists(noexist.txt) = " + str(file_exists("noexist.txt")))
+    println("")
+
+    # ---- Random ----
+    println("--- Random ---")
+    rand_seed(12345)
+    println("rand_int(1, 100) = " + str(rand_int(1, 100)))
+    println("rand_int(1, 100) = " + str(rand_int(1, 100)))
+    println("rand_float = " + str(rand_float()))
+    println("")
+
+    # ---- Time ----
+    println("--- Time ---")
+    println("time_now = " + str(time_now()))
+    println("")
+
+    println("All stdlib tests passed!")
+}

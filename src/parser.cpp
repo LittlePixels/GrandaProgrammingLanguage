@@ -53,6 +53,8 @@ Program Parser::parse() {
     while (!at(TT::END)) {
         if (at(TT::IMPORT)) {
             prog.imports.push_back(parse_import());
+        } else if (at(TT::TRAIT) || (at(TT::PUB) && peekTok().type == TT::TRAIT)) {
+            prog.traits.push_back(parse_trait());
         } else if (at(TT::CLASS) || (at(TT::PUB) && peekTok().type == TT::CLASS)) {
             prog.classes.push_back(parse_class());
         } else if (at(TT::FN) || (at(TT::PUB) && peekTok().type == TT::FN)) {
@@ -77,6 +79,63 @@ ImportDecl Parser::parse_import() {
     return {path, l};
 }
 
+TraitDecl Parser::parse_trait() {
+    int l = cur().line;
+    bool pub = match(TT::PUB);
+    expect(TT::TRAIT, "Expected 'trait'");
+    std::string name = expect(TT::IDENT, "Expected trait name").val;
+    expect(TT::LBRACE, "Expected '{' after trait name");
+
+    TraitDecl trait;
+    trait.is_pub = pub; trait.name = name; trait.line = l;
+
+    while (!at(TT::RBRACE) && !at(TT::END)) {
+        /* Trait methods: fn name(self, ...) -> RetType (no body) */
+        int ml = cur().line;
+        bool mpub = match(TT::PUB);
+        expect(TT::FN, "Expected 'fn' in trait body");
+        std::string mname = expect(TT::IDENT, "Expected method name").val;
+        expect(TT::LPAREN, "Expected '(' after method name");
+
+        std::vector<Param> params;
+        if (!at(TT::RPAREN)) {
+            if (at(TT::SELF)) {
+                Param p; p.name = "self"; p.type = TypeRef(TypeKind::INFERRED);
+                p.line = cur().line; consume(); params.push_back(std::move(p));
+                match(TT::COMMA);
+            }
+            while (!at(TT::RPAREN) && !at(TT::END)) {
+                params.push_back(parse_param());
+                if (!match(TT::COMMA)) break;
+            }
+        }
+        expect(TT::RPAREN, "Expected ')' to close parameter list");
+
+        TypeRef ret(TypeKind::VOID);
+        if (match(TT::ARROW)) ret = parse_type();
+
+        FnDecl method;
+        method.is_pub = mpub; method.is_method = true;
+        method.name = mname; method.params = std::move(params);
+        method.return_type = std::move(ret); method.line = ml;
+
+        /* Optional default body: { ... } */
+        if (at(TT::LBRACE)) {
+            consume();
+            while (!at(TT::RBRACE) && !at(TT::END)) {
+                method.body.push_back(parse_stmt());
+            }
+            expect(TT::RBRACE, "Expected '}' to close default method body");
+        } else {
+            match(TT::SEMICOLON);
+        }
+
+        trait.methods.push_back(std::move(method));
+    }
+    expect(TT::RBRACE, "Expected '}' to close trait body");
+    return trait;
+}
+
 ClassDecl Parser::parse_class() {
     int l = cur().line;
     bool pub = match(TT::PUB);
@@ -85,13 +144,25 @@ ClassDecl Parser::parse_class() {
     std::string base;
     if (match(TT::EXTENDS))
         base = expect(TT::IDENT, "Expected base class name after 'extends'").val;
-    expect(TT::LBRACE, "Expected '{' after class name");
+
+    std::vector<std::string> impls;
+    if (match(TT::IMPLEMENTS)) {
+        impls.push_back(expect(TT::IDENT, "Expected trait name after 'implements'").val);
+        while (match(TT::COMMA)) {
+            impls.push_back(expect(TT::IDENT, "Expected trait name after ','").val);
+        }
+    }
+
+    expect(TT::LBRACE, "Expected '{' after class header");
 
     ClassDecl cls;
-    cls.is_pub = pub; cls.name = name; cls.base_class = base; cls.line = l;
+    cls.is_pub = pub; cls.name = name; cls.base_class = base;
+    cls.implements = std::move(impls); cls.line = l;
 
     while (!at(TT::RBRACE) && !at(TT::END)) {
-        if (at(TT::FN) || (at(TT::PUB) && peekTok().type == TT::FN))
+        if (at(TT::FN) || (at(TT::PUB) && peekTok().type == TT::FN)
+            || at(TT::VIRTUAL) || at(TT::OVERRIDE)
+            || (at(TT::PUB) && (peekTok().type == TT::VIRTUAL || peekTok().type == TT::OVERRIDE)))
             cls.methods.push_back(parse_fn(true));
         else
             cls.fields.push_back(parse_field());
@@ -112,6 +183,9 @@ FieldDecl Parser::parse_field() {
 FnDecl Parser::parse_fn(bool is_method) {
     int l = cur().line;
     bool pub = match(TT::PUB);
+    bool virt = match(TT::VIRTUAL);
+    bool ovr = match(TT::OVERRIDE);
+    if (!virt && !pub) virt = match(TT::VIRTUAL); /* allow pub after virtual */
     expect(TT::FN, "Expected 'fn'");
     std::string name = expect(TT::IDENT, "Expected function name").val;
     expect(TT::LPAREN, "Expected '(' after function name");
@@ -138,7 +212,8 @@ FnDecl Parser::parse_fn(bool is_method) {
     expect(TT::RBRACE, "Expected '}' to close function body");
 
     FnDecl fn;
-    fn.is_pub = pub; fn.is_method = is_method; fn.name = name;
+    fn.is_pub = pub; fn.is_method = is_method; fn.is_virtual = virt;
+    fn.is_override = ovr; fn.name = name;
     fn.params = std::move(params); fn.return_type = std::move(ret);
     fn.body = std::move(body); fn.line = l;
     return fn;
@@ -526,16 +601,34 @@ ExprPtr Parser::parse_primary() {
         return e;
     }
 
-    if (at(TT::IDENT)) {
+    if (at(TT::IDENT) || at(TT::T_INT) || at(TT::T_FLOAT)
+        || at(TT::T_STR) || at(TT::T_BOOL)) {
         std::string name = consume().val;
 
-        /* ClassName::method(args) */
+        /* Name::method(args) — class static call or module::func call
+         * Handles multi-level: math::vec::func() */
         if (at(TT::DCOLON)) {
-            consume();
-            std::string method = expect(TT::IDENT, "Expected method name after '::'").val;
-            expect(TT::LPAREN, "Expected '(' after static method name");
+            std::vector<std::string> parts;
+            parts.push_back(name);
+            while (at(TT::DCOLON)) {
+                consume(); /* :: */
+                parts.push_back(expect(TT::IDENT, "Expected identifier after '::'").val);
+            }
+            expect(TT::LPAREN, "Expected '(' after method name");
             auto e = mk_expr(Expr::Kind::StaticCall, l);
-            e->class_name = name; e->method_name = method;
+            /* Last part is method name, rest is class/module path */
+            if (parts.size() >= 2) {
+                e->method_name = parts.back();
+                parts.pop_back();
+                std::string path;
+                for (size_t i = 0; i < parts.size(); ++i) {
+                    if (i) path += "::";
+                    path += parts[i];
+                }
+                e->class_name = path;
+            } else {
+                e->method_name = parts[0];
+            }
             while (!at(TT::RPAREN) && !at(TT::END)) {
                 e->args.push_back(parse_expr());
                 if (!match(TT::COMMA)) break;

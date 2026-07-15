@@ -1,0 +1,23 @@
+# math_utils.gra — a simple module with math helper functions
+
+pub fn clamp(x: float, lo: float, hi: float) -> float {
+    if x < lo {
+        return lo
+    }
+    if x > hi {
+        return hi
+    }
+    return x
+}
+
+pub fn lerp(a: float, b: float, t: float) -> float {
+    return a + (b - a) * t
+}
+
+pub fn deg_to_rad(deg: float) -> float {
+    return deg * 3.14159265358979 / 180.0
+}
+
+pub fn rad_to_deg(rad: float) -> float {
+    return rad * 180.0 / 3.14159265358979
+}

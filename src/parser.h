@@ -29,6 +29,7 @@ private:
 
     /* top-level */
     ImportDecl parse_import();
+    TraitDecl  parse_trait();
     ClassDecl  parse_class();
     FnDecl     parse_fn(bool is_method = false);
     Param      parse_param();

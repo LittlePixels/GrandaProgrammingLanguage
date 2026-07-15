@@ -13,6 +13,8 @@ enum class TT {
     WHILE, FOR, RETURN, EXTENDS, SELF,
     TRUE_KW, FALSE_KW, NULL_KW,
     IMPORT, PUB, IN, BREAK, CONTINUE,
+    VIRTUAL, OVERRIDE,
+    TRAIT, IMPLEMENTS,
 
     /* --- builtin type names --- */
     T_INT, T_FLOAT, T_STR, T_BOOL, T_VOID,

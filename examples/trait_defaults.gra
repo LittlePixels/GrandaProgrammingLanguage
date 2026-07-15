@@ -1,0 +1,73 @@
+# Trait default methods test
+
+trait Drawable {
+    fn area(self) -> float
+    fn description(self) -> str {
+        return "A drawable shape"
+    }
+    fn label(self) -> str {
+        return "Drawable"
+    }
+}
+
+class Circle implements Drawable {
+    radius: float
+
+    fn area(self) -> float {
+        return 3.14159 * self.radius * self.radius
+    }
+
+    fn description(self) -> str {
+        return "Circle(r=" + str(self.radius) + ")"
+    }
+    # Circle overrides both — no defaults used
+}
+
+class Square implements Drawable {
+    side: float
+
+    fn area(self) -> float {
+        return self.side * self.side
+    }
+    # Square does NOT override description() — uses default
+    # Square does NOT override label() — uses default
+}
+
+class Triangle implements Drawable {
+    base: float
+    height: float
+
+    fn area(self) -> float {
+        return 0.5 * self.base * self.height
+    }
+    # Triangle does NOT override description() — uses default
+}
+
+# --- Functions using trait-typed params ---
+fn print_info(d: Drawable) {
+    println(d.description())
+    println("  area = " + str(d.area()))
+    println("  label = " + d.label())
+}
+
+fn main() {
+    println("--- Trait Default Methods Test ---")
+
+    let c = Circle { radius: 5.0 }
+    let s = Square { side: 4.0 }
+    let t = Triangle { base: 3.0, height: 6.0 }
+
+    # Circle overrides description
+    println("Circle:")
+    print_info(c)
+
+    # Square uses inherited description and label defaults
+    println("Square:")
+    print_info(s)
+
+    # Triangle uses inherited description and label defaults
+    println("Triangle:")
+    print_info(t)
+
+    println("--- All trait default tests passed! ---")
+}

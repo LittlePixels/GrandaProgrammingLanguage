@@ -1,0 +1,29 @@
+# Module system test — imports math_utils module
+
+import math_utils
+
+fn main() {
+    println("--- Module System Test ---")
+
+    # Call module functions via module::func() syntax
+    let c = math_utils::clamp(5.0, 0.0, 3.0)
+    println("clamp(5, 0, 3) = " + str(c))
+
+    let c2 = math_utils::clamp(1.0, 0.0, 3.0)
+    println("clamp(1, 0, 3) = " + str(c2))
+
+    let l = math_utils::lerp(0.0, 10.0, 0.25)
+    println("lerp(0, 10, 0.25) = " + str(l))
+
+    let r = math_utils::deg_to_rad(180.0)
+    println("deg_to_rad(180) = " + str(r))
+
+    let d = math_utils::rad_to_deg(3.14159)
+    println("rad_to_deg(3.14159) = " + str(d))
+
+    # Can still use stdlib builtins alongside module functions
+    println("sin(1.0) = " + str(sin(1.0)))
+    println("sqrt(16.0) = " + str(sqrt(16.0)))
+
+    println("--- All module tests passed! ---")
+}

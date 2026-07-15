@@ -13,6 +13,8 @@ const std::unordered_map<std::string, TT> Lexer::kw_map = {
     {"import",   TT::IMPORT},   {"pub",      TT::PUB},
     {"in",       TT::IN},       {"break",    TT::BREAK},
     {"continue", TT::CONTINUE},
+    {"virtual",  TT::VIRTUAL},   {"override", TT::OVERRIDE},
+    {"trait",    TT::TRAIT},     {"implements", TT::IMPLEMENTS},
     {"int",      TT::T_INT},    {"float",    TT::T_FLOAT},
     {"str",      TT::T_STR},    {"bool",     TT::T_BOOL},
     {"void",     TT::T_VOID},

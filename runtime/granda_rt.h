@@ -82,6 +82,83 @@ void granda_print_float(double f);
 void granda_print_bool(int b);
 
 /* -----------------------------------------------------------------------
+ * Math
+ * --------------------------------------------------------------------- */
+double   granda_math_sin(double x);
+double   granda_math_cos(double x);
+double   granda_math_tan(double x);
+double   granda_math_sqrt(double x);
+double   granda_math_pow(double x, double y);
+double   granda_math_abs_f(double x);
+int64_t  granda_math_abs_i(int64_t x);
+int64_t  granda_math_floor(double x);
+int64_t  granda_math_ceil(double x);
+int64_t  granda_math_round(double x);
+int64_t  granda_math_min_i(int64_t a, int64_t b);
+double   granda_math_min_f(double a, double b);
+int64_t  granda_math_max_i(int64_t a, int64_t b);
+double   granda_math_max_f(double a, double b);
+double   granda_math_log(double x);
+double   granda_math_log2(double x);
+double   granda_math_log10(double x);
+
+/* -----------------------------------------------------------------------
+ * String stdlib
+ * --------------------------------------------------------------------- */
+GrandaStr*  granda_str_substr(GrandaStr* s, int64_t start, int64_t len);
+int64_t     granda_str_index_of(GrandaStr* s, GrandaStr* sub);
+int         granda_str_contains(GrandaStr* s, GrandaStr* sub);
+GrandaStr*  granda_str_to_upper(GrandaStr* s);
+GrandaStr*  granda_str_to_lower(GrandaStr* s);
+GrandaStr*  granda_str_trim(GrandaStr* s);
+GrandaArray* granda_str_split(GrandaStr* s, GrandaStr* sep);
+GrandaStr*  granda_str_replace(GrandaStr* s, GrandaStr* old, GrandaStr* new_s);
+int         granda_str_starts_with(GrandaStr* s, GrandaStr* prefix);
+int         granda_str_ends_with(GrandaStr* s, GrandaStr* suffix);
+GrandaStr*  granda_str_char_at(GrandaStr* s, int64_t idx);
+int64_t     granda_str_to_int(GrandaStr* s);
+double      granda_str_to_float(GrandaStr* s);
+
+/* -----------------------------------------------------------------------
+ * Array stdlib
+ * --------------------------------------------------------------------- */
+void*    granda_array_pop(GrandaArray* arr);
+int64_t  granda_int_array_pop(GrandaArray* arr);
+double   granda_float_array_pop(GrandaArray* arr);
+void     granda_array_sort_i(GrandaArray* arr);
+void     granda_array_sort_f(GrandaArray* arr);
+void     granda_array_reverse(GrandaArray* arr);
+
+/* -----------------------------------------------------------------------
+ * File I/O
+ * --------------------------------------------------------------------- */
+GrandaStr*  granda_read_file(GrandaStr* path);
+void        granda_write_file(GrandaStr* path, GrandaStr* content);
+int         granda_file_exists(GrandaStr* path);
+GrandaStr*  granda_read_line(void);
+GrandaArray* granda_args(void);
+void         granda_set_args(int argc, char** argv);
+
+/* -----------------------------------------------------------------------
+ * Random
+ * --------------------------------------------------------------------- */
+int64_t  granda_rand_int(int64_t min_val, int64_t max_val);
+double   granda_rand_float(void);
+void     granda_rand_seed(int64_t seed);
+
+/* -----------------------------------------------------------------------
+ * Time
+ * --------------------------------------------------------------------- */
+double   granda_time_now(void);
+void     granda_time_sleep(int64_t ms);
+
+/* -----------------------------------------------------------------------
+ * OS
+ * --------------------------------------------------------------------- */
+void     granda_os_exit(int64_t code);
+GrandaStr* granda_os_env(GrandaStr* name);
+
+/* -----------------------------------------------------------------------
  * Error
  * --------------------------------------------------------------------- */
 void granda_panic(const char* msg);

@@ -1,0 +1,86 @@
+# Vtable polymorphism demo in Granda
+
+class Shape {
+    color: str
+
+    fn new(color: str) -> Shape {
+        return Shape { color: color }
+    }
+
+    virtual fn draw(self) -> void {
+        println("Drawing a " + self.color + " shape")
+    }
+
+    virtual fn area(self) -> float {
+        return 0.0
+    }
+
+    fn describe(self) -> str {
+        return self.color + " shape (area=" + str(self.area()) + ")"
+    }
+}
+
+class Circle extends Shape {
+    radius: float
+
+    fn new(color: str, radius: float) -> Circle {
+        return Circle { color: color, radius: radius }
+    }
+
+    override fn draw(self) -> void {
+        println("Drawing a " + self.color + " circle with radius " + str(self.radius))
+    }
+
+    override fn area(self) -> float {
+        return 3.14159 * self.radius * self.radius
+    }
+}
+
+class Rectangle extends Shape {
+    width: float
+    height: float
+
+    fn new(color: str, w: float, h: float) -> Rectangle {
+        return Rectangle { color: color, width: w, height: h }
+    }
+
+    override fn draw(self) -> void {
+        println("Drawing a " + self.color + " rectangle " + str(self.width) + "x" + str(self.height))
+    }
+
+    override fn area(self) -> float {
+        return self.width * self.height
+    }
+}
+
+fn draw_shape(s: Shape) -> void {
+    s.draw()
+}
+
+fn print_area(s: Shape) -> void {
+    println("  area = " + str(s.area()))
+}
+
+fn main() {
+    let circle = Circle::new("red", 5.0)
+    let rect = Rectangle::new("blue", 4.0, 3.0)
+
+    println("--- Direct calls ---")
+    circle.draw()
+    rect.draw()
+    println("")
+
+    println("--- Polymorphic calls via function parameter ---")
+    draw_shape(circle)
+    draw_shape(rect)
+    println("")
+
+    println("--- Area via virtual dispatch ---")
+    print_area(circle)
+    print_area(rect)
+    println("")
+
+    println("--- Describe (non-virtual calls area internally) ---")
+    println(circle.describe())
+    println(rect.describe())
+}

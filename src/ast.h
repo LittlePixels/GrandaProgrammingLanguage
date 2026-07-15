@@ -17,6 +17,7 @@ enum class TypeKind {
     INT, FLOAT, STR, BOOL, VOID,
     ARRAY,   /* element type in ->elem */
     CLASS,   /* class_name set */
+    TRAIT,   /* trait name in class_name */
     INFERRED,
 };
 
@@ -29,6 +30,16 @@ struct TypeRef {
     explicit TypeRef(TypeKind k) : kind(k) {}
     explicit TypeRef(std::string name)
         : kind(TypeKind::CLASS), class_name(std::move(name)) {}
+
+    /* Value semantics: deep-copy the owned element type. */
+    TypeRef(const TypeRef& o) { *this = o; }
+    TypeRef& operator=(const TypeRef& o) {
+        kind = o.kind; class_name = o.class_name;
+        elem = o.elem ? std::make_unique<TypeRef>(*o.elem) : nullptr;
+        return *this;
+    }
+    TypeRef(TypeRef&&) = default;
+    TypeRef& operator=(TypeRef&&) = default;
 
     static TypeRef array_of(TypeRef e) {
         TypeRef t; t.kind = TypeKind::ARRAY;
@@ -43,7 +54,7 @@ struct TypeRef {
 
     bool operator==(const TypeRef& o) const {
         if (kind != o.kind) return false;
-        if (kind == TypeKind::CLASS) return class_name == o.class_name;
+        if (kind == TypeKind::CLASS || kind == TypeKind::TRAIT) return class_name == o.class_name;
         if (kind == TypeKind::ARRAY)
             return elem && o.elem && *elem == *o.elem;
         return true;
@@ -64,6 +75,7 @@ struct TypeRef {
             case TypeKind::VOID:     return "void";
             case TypeKind::ARRAY:    return "[" + (elem ? elem->str() : "?") + "]";
             case TypeKind::CLASS:    return class_name;
+            case TypeKind::TRAIT:    return class_name;
             case TypeKind::INFERRED: return "<inferred>";
         }
         return "?";
@@ -108,7 +120,7 @@ struct Expr {
         Binary, Unary,
         Call,         /* fn(args) */
         MethodCall,   /* obj.method(args) */
-        StaticCall,   /* Class::method(args) */
+        StaticCall,   /* Class::method(args) or module::func(args) */
         FieldAccess,  /* obj.field */
         Index,        /* arr[i] */
         Assign,       /* target = value */
@@ -200,8 +212,10 @@ struct FieldDecl {
 };
 
 struct FnDecl {
-    bool        is_pub     = false;
-    bool        is_method  = false;
+    bool        is_pub      = false;
+    bool        is_method   = false;
+    bool        is_virtual  = false;
+    bool        is_override = false;
     std::string name;
     std::vector<Param> params;
     TypeRef     return_type;
@@ -213,6 +227,7 @@ struct ClassDecl {
     bool        is_pub = false;
     std::string name;
     std::string base_class;
+    std::vector<std::string> implements; /* trait names */
     std::vector<FieldDecl> fields;
     std::vector<FnDecl>    methods;
     int         line = 0;
@@ -223,8 +238,16 @@ struct ImportDecl {
     int         line = 0;
 };
 
+struct TraitDecl {
+    bool        is_pub = false;
+    std::string name;
+    std::vector<FnDecl> methods; /* signatures only — no bodies */
+    int         line = 0;
+};
+
 struct Program {
     std::vector<ImportDecl> imports;
+    std::vector<TraitDecl>  traits;
     std::vector<ClassDecl>  classes;
     std::vector<FnDecl>     functions;
 };
