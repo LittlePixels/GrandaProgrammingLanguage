@@ -12,6 +12,10 @@
 #include <string>
 #include <unordered_set>
 #include <unordered_map>
+#ifdef _WIN32
+#include <io.h>
+#include <process.h>
+#endif
 
 namespace fs = std::filesystem;
 
@@ -30,20 +34,56 @@ static void usage(const char* prog) {
         << "Usage:\n"
         << "  " << prog << " <source.gra> [options]\n\n"
         << "Options:\n"
-        << "  -o <output>      Output binary name (default: a.out)\n"
+        << "  -o <output>      Output binary name (default: a.exe / a.out)\n"
         << "  --emit-c         Write generated C to stdout and exit\n"
-        << "  --cc <cmd>       C compiler to use (default: cc)\n"
+        << "  --cc <cmd>       C compiler to use (auto-detected if not set)\n"
         << "  --runtime <dir>  Directory containing granda_rt.h and granda_rt.c\n"
         << "  -I <dir>         Add include path for module resolution\n"
         << "  -h / --help      Show this message\n";
 }
 
+/* Try to find a C compiler on the system */
+static std::string find_cc() {
+#ifdef _WIN32
+    const char* candidates[] = {
+        "C:\\msys64\\ucrt64\\bin\\gcc.exe",
+        "C:\\msys64\\mingw64\\bin\\gcc.exe",
+        "C:\\msys64\\usr\\bin\\gcc.exe",
+        "C:\\MinGW\\bin\\gcc.exe",
+        "C:\\msys64\\ucrt64\\bin\\clang.exe",
+    };
+    for (auto c : candidates) {
+        if (_access(c, 0) == 0) return std::string(c);
+    }
+    return "gcc";
+#else
+    if (std::system("gcc --version >/dev/null 2>&1") == 0) return "gcc";
+    if (std::system("cc --version >/dev/null 2>&1") == 0) return "cc";
+    return "cc";
+#endif
+}
+
+/* Search for granda_rt.h/.c relative to the given directory */
 static std::string find_runtime(const std::string& exe_dir) {
-    if (fs::exists(exe_dir + "/granda_rt.h")) return exe_dir;
-    if (fs::exists(exe_dir + "/../runtime/granda_rt.h"))
-        return fs::canonical(exe_dir + "/../runtime").string();
-    if (fs::exists(exe_dir + "/../share/granda/runtime/granda_rt.h"))
-        return fs::canonical(exe_dir + "/../share/granda/runtime").string();
+    /* Check in the exe's own directory first */
+    if (fs::exists(fs::path(exe_dir) / "granda_rt.h"))
+        return exe_dir;
+    /* Check ./runtime/ (bundled alongside exe) */
+    fs::path rt0 = fs::path(exe_dir) / "runtime";
+    if (fs::exists(rt0 / "granda_rt.h"))
+        return fs::weakly_canonical(rt0).string();
+    /* Check ../runtime/ (project layout) */
+    fs::path rt1 = fs::path(exe_dir) / ".." / "runtime";
+    if (fs::exists(rt1 / "granda_rt.h"))
+        return fs::weakly_canonical(rt1).string();
+    /* Check ../../runtime/ (if exe is in build/) */
+    fs::path rt3 = fs::path(exe_dir) / ".." / ".." / "runtime";
+    if (fs::exists(rt3 / "granda_rt.h"))
+        return fs::weakly_canonical(rt3).string();
+    /* Check ../share/granda/runtime/ (install layout) */
+    fs::path rt2 = fs::path(exe_dir) / ".." / "share" / "granda" / "runtime";
+    if (fs::exists(rt2 / "granda_rt.h"))
+        return fs::weakly_canonical(rt2).string();
     return "";
 }
 
@@ -141,8 +181,12 @@ int main(int argc, char* argv[]) {
     if (argc < 2) { usage(argv[0]); return 1; }
 
     std::string source_file;
+#ifdef _WIN32
+    std::string output_file = "a.exe";
+#else
     std::string output_file = "a.out";
-    std::string cc          = "cc";
+#endif
+    std::string cc;          /* empty = auto-detect */
     std::string runtime_dir;
     bool emit_c = false;
     std::vector<std::string> include_paths;
@@ -175,6 +219,9 @@ int main(int argc, char* argv[]) {
         std::cerr << "Error: no source file given\n";
         usage(argv[0]); return 1;
     }
+
+    /* --- Auto-detect C compiler --- */
+    if (cc.empty()) cc = find_cc();
 
     /* --- Parse main file --- */
     std::string source_dir = fs::path(source_file).parent_path().string();
@@ -248,7 +295,7 @@ int main(int argc, char* argv[]) {
     }
 
     /* --- Write generated C to a temp file --- */
-    std::string tmp_c = fs::temp_directory_path().string() + "/granda_out.c";
+    std::string tmp_c = fs::temp_directory_path().string() + "\\granda_out.c";
     {
         std::ofstream f(tmp_c);
         if (!f) {
@@ -259,19 +306,49 @@ int main(int argc, char* argv[]) {
     }
 
     /* --- Invoke C compiler --- */
-    std::string cmd = cc
-        + " \"" + tmp_c + "\""
-        + " \"" + runtime_dir + "/granda_rt.c\""
-        + " -I \"" + runtime_dir + "\""
-        + " -o \"" + output_file + "\""
-        + " -O2 -lm 2>&1";
+    std::string rt_fwd = runtime_dir;
+    for (auto& ch : rt_fwd) { if (ch == '\\') ch = '/'; }
+    std::string tmp_fwd = tmp_c;
+    for (auto& ch : tmp_fwd) { if (ch == '\\') ch = '/'; }
+    std::string rt_c_file = rt_fwd + "/granda_rt.c";
 
-    int ret = std::system(cmd.c_str());
+    const char* cc_cstr = cc.c_str();
+#ifdef _WIN32
+    const char* args[] = {
+        cc_cstr,
+        tmp_fwd.c_str(),
+        rt_c_file.c_str(),
+        "-I", rt_fwd.c_str(),
+        "-o", output_file.c_str(),
+        "-O2", "-lm", nullptr
+    };
+    int ret = _spawnvp(_P_WAIT, cc_cstr, args);
     if (ret != 0) {
         std::cerr << "C compiler failed (exit " << ret << ")\n";
+        std::cerr << "Command: " << cc << " " << tmp_fwd
+                  << " " << rt_c_file
+                  << " -I " << rt_fwd
+                  << " -o " << output_file
+                  << " -O2 -lm\n";
         std::cerr << "Generated C written to: " << tmp_c << '\n';
         return 1;
     }
+#else
+    std::string cmd = "\""
+        + cc + "\" \""
+        + tmp_fwd + "\" \""
+        + rt_fwd + "/granda_rt.c\""
+        + " -I \"" + rt_fwd + "\""
+        + " -o \"" + output_file + "\""
+        + " -O2 -lm";
+    int ret = std::system(cmd.c_str());
+    if (ret != 0) {
+        std::cerr << "C compiler failed (exit " << ret << ")\n";
+        std::cerr << "Command: " << cmd << '\n';
+        std::cerr << "Generated C written to: " << tmp_c << '\n';
+        return 1;
+    }
+#endif
 
     return 0;
 }
