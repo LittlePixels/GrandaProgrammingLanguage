@@ -14,8 +14,8 @@
 #include <unordered_map>
 #ifdef _WIN32
 #include <io.h>
-#include <process.h>
 #endif
+#include <cstdlib>
 
 namespace fs = std::filesystem;
 
@@ -312,43 +312,33 @@ int main(int argc, char* argv[]) {
     for (auto& ch : tmp_fwd) { if (ch == '\\') ch = '/'; }
     std::string rt_c_file = rt_fwd + "/granda_rt.c";
 
-    const char* cc_cstr = cc.c_str();
-#ifdef _WIN32
-    const char* args[] = {
-        cc_cstr,
-        tmp_fwd.c_str(),
-        rt_c_file.c_str(),
-        "-I", rt_fwd.c_str(),
-        "-o", output_file.c_str(),
-        "-O2", "-lm", nullptr
-    };
-    int ret = _spawnvp(_P_WAIT, cc_cstr, args);
-    if (ret != 0) {
-        std::cerr << "C compiler failed (exit " << ret << ")\n";
-        std::cerr << "Command: " << cc << " " << tmp_fwd
-                  << " " << rt_c_file
-                  << " -I " << rt_fwd
-                  << " -o " << output_file
-                  << " -O2 -lm\n";
-        std::cerr << "Generated C written to: " << tmp_c << '\n';
-        return 1;
-    }
-#else
-    std::string cmd = "\""
-        + cc + "\" \""
-        + tmp_fwd + "\" \""
-        + rt_fwd + "/granda_rt.c\""
+    std::string cmd = cc
+        + std::string(" \"") + tmp_fwd + "\""
+        + " \"" + rt_c_file + "\""
         + " -I \"" + rt_fwd + "\""
         + " -o \"" + output_file + "\""
         + " -O2 -lm";
+
+    /* Remove output file before compile to detect success by existence */
+    fs::remove(output_file);
+
+    /* Ensure compiler's directory is in PATH for its sub-processes (cc1, as, collect2) */
+    std::string cc_dir = fs::path(cc).parent_path().string();
+    if (!cc_dir.empty()) {
+        const char* cur_path = std::getenv("PATH");
+#ifdef _WIN32
+        _putenv(("PATH=" + cc_dir + ";" + (cur_path ? cur_path : "")).c_str());
+#else
+        setenv("PATH", (cc_dir + ":" + (cur_path ? cur_path : "")).c_str(), 1);
+#endif
+    }
+
     int ret = std::system(cmd.c_str());
-    if (ret != 0) {
+    if (ret != 0 || !fs::exists(output_file)) {
         std::cerr << "C compiler failed (exit " << ret << ")\n";
-        std::cerr << "Command: " << cmd << '\n';
         std::cerr << "Generated C written to: " << tmp_c << '\n';
         return 1;
     }
-#endif
 
     return 0;
 }
